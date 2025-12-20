@@ -76,22 +76,22 @@ def collect_for_icp(
     logger.info(f"Collected {len(all_posts)} posts from search queries")
     
     # Optionally collect from new listings
-    if api_config.get('use_new_listing', True):
-        new_listing_fetch = api_config.get('new_listing_fetch', 200)
+    # if api_config.get('use_new_listing', True):
+    #     new_listing_fetch = api_config.get('new_listing_fetch', 200)
         
-        for subreddit in subreddits:
-            results = client.fetch_new(subreddit, limit=new_listing_fetch)
+    #     for subreddit in subreddits:
+    #         results = client.fetch_new(subreddit, limit=new_listing_fetch)
             
-            for post in results:
-                # Stop if too old
-                if post.created_utc < cutoff_timestamp:
-                    break
+    #         for post in results:
+    #             # Stop if too old
+    #             if post.created_utc < cutoff_timestamp:
+    #                 break
                 
-                if post.id not in seen_ids:
-                    seen_ids.add(post.id)
-                    all_posts.append(post)
+    #             if post.id not in seen_ids:
+    #                 seen_ids.add(post.id)
+    #                 all_posts.append(post)
         
-        logger.info(f"Total posts after new listing: {len(all_posts)}")
+    #     logger.info(f"Total posts after new listing: {len(all_posts)}")
     
     # Apply hard filters
     filtered_posts = []

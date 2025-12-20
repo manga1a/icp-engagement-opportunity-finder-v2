@@ -6,7 +6,7 @@ defaults:
     search_time_filter: week  # hour|day|week|month|year|all
     sort: new
     days_back: 90              # hard cutoff for recency
-    use_new_listing: true
+    use_new_listing: false
     new_listing_fetch: 200     # per subreddit cap, bounded by days_back
     restrict_sr: true
   filters:
