@@ -61,3 +61,80 @@ Edit `config/reddit_icp.yaml` to:
 - Set quality thresholds
 
 See the config file for detailed inline documentation.
+
+## Performance Profiling
+
+The scraper includes built-in profiling support to identify performance bottlenecks and optimize execution time.
+
+### Quick Start
+
+```bash
+# Run with profiling enabled
+make profile
+
+# Profile a specific ICP
+make profile-agency
+
+# View the most recent profile results
+make profile-view
+
+# List all available profile files
+make profile-list
+```
+
+### Manual Profiling
+
+```bash
+# Profile all ICPs
+python -m src.run --config config/reddit_icp.yaml --profile
+
+# Profile specific ICP with custom output directory
+python -m src.run --icp "Marketing Agencies" --profile --profile-output my_profiles
+
+# Combine with other options
+python -m src.run --profile --top-k 50 --since-days 7
+```
+
+### Analyzing Profile Results
+
+Profile results are saved to `profile_stats/` directory with two files:
+- `reddit_scraper_YYYYMMDD_HHMMSS.prof` - Binary stats (for detailed analysis)
+- `reddit_scraper_YYYYMMDD_HHMMSS.txt` - Human-readable report
+
+**Analyze a specific profile:**
+```bash
+python scripts/analyze_profile.py analyze profile_stats/reddit_scraper_20251220_143022.prof
+```
+
+**Compare two profiles** (e.g., before/after optimization):
+```bash
+python scripts/analyze_profile.py compare \
+  profile_stats/reddit_scraper_20251220_143022.prof \
+  profile_stats/reddit_scraper_20251220_150000.prof
+```
+
+**List all available profiles:**
+```bash
+python scripts/analyze_profile.py list
+```
+
+### Understanding Profile Output
+
+The profiler shows:
+- **Total time**: Overall execution time
+- **Function calls**: Number of times each function was called
+- **Cumulative time**: Time spent in function + all subfunctions
+- **Internal time**: Time spent only in the function itself
+
+**Key areas to examine:**
+1. **API calls** (`reddit_client.py`) - Network I/O bottlenecks
+2. **Collection** (`collector.py`) - Main processing loop
+3. **Filtering** (`filters.py`) - Filter performance
+4. **Scoring** (`scorer.py`) - Scoring algorithm efficiency
+
+### Tips for Optimization
+
+- Look for functions with high cumulative time but low call counts (expensive operations)
+- Identify functions called many times with moderate per-call time (optimization candidates)
+- Check for unexpected function calls or redundant operations
+- Compare profiles before/after changes to measure improvement

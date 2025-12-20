@@ -1,5 +1,6 @@
 """Main CLI runner."""
 import argparse
+import cProfile
 import json
 import logging
 import os
@@ -11,6 +12,7 @@ from dotenv import load_dotenv
 from .config_loader import load_config
 from .reddit_client import RedditClient
 from .collector import collect_for_icp, format_post_for_output
+from .profiler import save_profile_stats, print_profile_summary
 
 
 def setup_logging(level: str = 'INFO'):
@@ -109,6 +111,17 @@ def main():
         default='INFO',
         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
         help='Logging level'
+    )
+    parser.add_argument(
+        '--profile',
+        action='store_true',
+        help='Enable profiling to identify performance bottlenecks'
+    )
+    parser.add_argument(
+        '--profile-output',
+        type=str,
+        default='profile_stats',
+        help='Directory for profile output files (default: profile_stats)'
     )
     
     args = parser.parse_args()
@@ -216,4 +229,42 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # Check if profiling is enabled via command line
+    # We need to parse args early to check for --profile flag
+    import sys
+    profile_enabled = '--profile' in sys.argv
+    
+    if profile_enabled:
+        # Run with profiling
+        profiler = cProfile.Profile()
+        profiler.enable()
+        
+        try:
+            main()
+        finally:
+            profiler.disable()
+            
+            # Get output directory from args or use default
+            profile_output = 'profile_stats'
+            if '--profile-output' in sys.argv:
+                idx = sys.argv.index('--profile-output')
+                if idx + 1 < len(sys.argv):
+                    profile_output = sys.argv[idx + 1]
+            
+            # Save profile stats
+            output_dir = Path(profile_output)
+            prof_file, txt_file = save_profile_stats(profiler, output_dir, prefix='reddit_scraper')
+            
+            # Print summary to console
+            print_profile_summary(profiler, top_n=15)
+            
+            print("\n" + "=" * 80)
+            print("PROFILING COMPLETE")
+            print("=" * 80)
+            print(f"Binary stats: {prof_file}")
+            print(f"Text report:  {txt_file}")
+            print(f"\nAnalyze with: python scripts/analyze_profile.py analyze {prof_file}")
+            print("=" * 80 + "\n")
+    else:
+        # Run normally without profiling
+        main()

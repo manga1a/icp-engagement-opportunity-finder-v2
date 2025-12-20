@@ -23,3 +23,5 @@ Thumbs.db
 
 # Logs
 *.log
+# Profile data
+profile_stats/
