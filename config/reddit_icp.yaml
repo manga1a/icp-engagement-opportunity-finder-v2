@@ -1,0 +1,106 @@
+version: 1
+
+defaults:
+  api:
+    per_query_limit: 75        # 50–100 good range
+    search_time_filter: week  # hour|day|week|month|year|all
+    sort: new
+    days_back: 90              # hard cutoff for recency
+    use_new_listing: true
+    new_listing_fetch: 200     # per subreddit cap, bounded by days_back
+    restrict_sr: true
+  filters:
+    self_posts_only: true
+    exclude_nsfw: true
+    min_title_chars: 10
+    min_selftext_chars: 120
+    exclude_crossposts: true
+    exclude_link_posts: true
+    title_regex_exclude: "(?i)hiring|for hire|portfolio|showcase|discount|promo|giveaway|beta launch"
+    flair_exclude: ["Hiring", "For Hire", "Promo", "Showcase", "Service"]
+    max_links_in_body: 2
+    english_only: true
+    ascii_ratio_threshold: 0.85
+  scoring:
+    weights:
+      keyword: 0.45
+      recency: 0.30
+      engagement: 0.20
+      subreddit_prior: 0.05
+    penalties:
+      promo_in_title: 0.3
+      low_effort_body: 0.2
+      excessive_links: 0.2
+    recency_half_life_days: 7
+    engagement:
+      a_score: 0.6
+      b_comments: 0.8
+      c_upvote_ratio: 0.8
+      new_post_comment_grace_hours: 24
+    keyword_caps:
+      exact_phrase_cap: 2.0
+      normalize_divisor: 3.0
+  selection:
+    top_k_per_icp: 20
+    min_final_score: 0.45
+  comments:
+    fetch_for_validation: false
+    limit: 20
+    validation_keywords: ["what tools", "how do you solve", "metrics", "reporting", "drop-off", "checkout"]
+
+icps:
+  - name: "Marketing Agencies"
+    subreddit_priors:
+      r/marketingagency: 1.0
+      r/bigseo: 0.9
+      r/SEO: 0.8
+      r/PPC: 0.8
+      r/GoogleAds: 0.8
+      r/facebookads: 0.7
+      r/web_analytics: 0.8
+      r/analytics: 0.7
+      r/marketing: 0.6
+    keyword_buckets:
+      - name: "client_reporting_core"
+        include_phrases: ["client report", "client reporting", "weekly report", "monthly report", "white label", "custom dashboard", "manual reporting"]
+        include_terms: ["dashboard", "GA4", "Looker Studio", "Data Studio"]
+        exclude_terms: ["hiring", "job", "promo", "portfolio"]
+      - name: "pain_points"
+        include_phrases: ["don't understand metrics", "explain metrics", "reporting takes longer", "drowning in tools", "manual work is killing", "margins"]
+        include_terms: ["client", "metrics", "reporting"]
+        exclude_terms: ["case study", "self promo"]
+  
+  - name: "E-commerce SMBs"
+    subreddit_priors:
+      r/shopify: 1.0
+      r/ecommerce: 0.9
+      r/woocommerce: 0.7
+      r/AmazonSeller: 0.7
+      r/FulfillmentByAmazon: 0.7
+      r/smallbusiness: 0.6
+    keyword_buckets:
+      - name: "revenue_leaks"
+        include_phrases: ["cart abandonment", "checkout friction", "theme conflict", "inventory sync", "too many apps", "site speed", "app conflict"]
+        include_terms: ["Shopify", "AOV", "CPM", "CAC", "recover revenue", "Shopify app", "checkout"]
+        exclude_terms: ["giveaway", "discount", "promo", "affiliate"]
+      - name: "pain_points"
+        include_phrases: ["margins are getting crushed", "ads are expensive", "inventory never syncs", "slowing the site"]
+        include_terms: ["margin", "inventory", "performance"]
+        exclude_terms: ["promo", "discount code"]
+  
+  - name: "Course Creators / Educators"
+    subreddit_priors:
+      r/onlinecourses: 1.0
+      r/elearning: 0.8
+      r/edtech: 0.7
+      r/instructionaldesign: 0.7
+      r/TeachersUsingTech: 0.6
+    keyword_buckets:
+      - name: "engagement_dropoff"
+        include_phrases: ["student drop", "drop-off", "drop off", "engagement drops", "completion rate", "who's struggling", "feedback is scattered", "students stop halfway"]
+        include_terms: ["cohort", "nudges", "risk score", "Thinkific", "Teachable", "Kajabi", "LMS", "engagement"]
+        exclude_terms: ["course launch promo", "affiliate", "discount"]
+      - name: "platform_pain"
+        include_phrases: ["course platforms feel clunky", "hard to see who", "engagement after week one"]
+        include_terms: ["student", "learner", "completion"]
+        exclude_terms: ["hiring", "job posting"]
