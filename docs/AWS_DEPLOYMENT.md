@@ -28,11 +28,12 @@ aws stepfunctions start-execution \
 
 ## Architecture Overview
 
-**3 Lambda Functions + Step Functions:**
+**4 Lambda Functions + Step Functions:**
 
 1. **Orchestrator** (30s, 256MB): Load config from S3, fan out ICP tasks
 2. **Scraper** (15min, 512MB): Scrape Reddit per ICP with rate limiting
-3. **Aggregator** (60s, 256MB): Collect results, send SNS notification
+3. **Summarizer** (5min, 512MB): Summarize posts with Bedrock, send ICP emails to SNS
+4. **Aggregator** (60s, 256MB): Collect results, send summary notification
 
 **Key Features:**
 - Parallel processing (2-3 ICPs concurrently)
@@ -188,7 +189,30 @@ sequenceDiagram
 }
 ```
 
-### 3. Aggregator Lambda
+### 3. ICP Summarizer Lambda
+
+**Purpose**: Summarize posts with Bedrock Claude Haiku and send individual emails per ICP via SNS
+
+**Configuration:**
+- Timeout: 5 minutes
+- Memory: 512 MB
+- Trigger: Step Functions (after all scrapers complete)
+
+**Responsibilities:**
+- Load post results from S3
+- Summarize each post body using Bedrock Claude Haiku
+- Build formatted email with summaries and URLs
+- Send one email per ICP to SNS topic
+
+**Output:**
+```json
+{
+  "status": "emails_sent",
+  "icp_count": 3
+}
+```
+
+### 4. Aggregator Lambda
 
 **Purpose**: Collect results, send notifications
 

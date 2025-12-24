@@ -150,6 +150,7 @@ def lambda_handler(event, context):
                     'id': post.id,
                     'permalink': f"https://www.reddit.com{post.permalink}",
                     'title': post.title,
+                    'selftext': post.selftext or '',
                     'author': f"u/{post.author.name}" if post.author else "[deleted]",
                     'subreddit': f"r/{post.subreddit.display_name}",
                     'created_utc': datetime.fromtimestamp(post.created_utc, tz=timezone.utc).isoformat(),

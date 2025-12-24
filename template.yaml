@@ -105,6 +105,28 @@ Resources:
                 - secretsmanager:GetSecretValue
               Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:reddit-scraper/credentials-*
 
+  SummarizerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: reddit-summarizer
+      CodeUri: lambda/summarizer/
+      Handler: handler.lambda_handler
+      Timeout: 300
+      MemorySize: 512
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN: !Ref NotificationTopic
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref ResultsBucketName
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt NotificationTopic.TopicName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: arn:aws:bedrock:*::foundation-model/anthropic.claude-3-haiku-20240307-v1:0
+
   AggregatorFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -129,12 +151,15 @@ Resources:
       DefinitionSubstitutions:
         OrchestratorFunctionArn: !GetAtt OrchestratorFunction.Arn
         ScraperFunctionArn: !GetAtt ScraperFunction.Arn
+        SummarizerFunctionArn: !GetAtt SummarizerFunction.Arn
         AggregatorFunctionArn: !GetAtt AggregatorFunction.Arn
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref OrchestratorFunction
         - LambdaInvokePolicy:
             FunctionName: !Ref ScraperFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref SummarizerFunction
         - LambdaInvokePolicy:
             FunctionName: !Ref AggregatorFunction
       Events:
