@@ -16,9 +16,11 @@ Parameters:
 
 Globals:
   Function:
-    Runtime: python3.11
+    Runtime: python3.12
     Timeout: 900
     MemorySize: 512
+    Architectures:
+      - arm64
     Environment:
       Variables:
         CONFIG_BUCKET: !Ref ConfigBucketName
