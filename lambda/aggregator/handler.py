@@ -1,7 +1,7 @@
 import json
 import os
 import boto3
-from datetime import datetime
+from datetime import datetime, UTC
 
 sns = boto3.client('sns')
 cloudwatch = boto3.client('cloudwatch')
@@ -22,13 +22,13 @@ def lambda_handler(event, context):
                 'MetricName': 'PostsScraped',
                 'Value': total_posts,
                 'Unit': 'Count',
-                'Timestamp': datetime.utcnow()
+                'Timestamp': datetime.now(UTC)
             },
             {
                 'MetricName': 'ICPsProcessed',
                 'Value': successful,
                 'Unit': 'Count',
-                'Timestamp': datetime.utcnow()
+                'Timestamp': datetime.now(UTC)
             }
         ]
     )

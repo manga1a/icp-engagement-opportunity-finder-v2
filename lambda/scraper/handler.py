@@ -2,7 +2,7 @@ import json
 import os
 import time
 import boto3
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, UTC
 from typing import Dict, Any, List, Set
 import praw
 from praw.models import Submission
@@ -15,7 +15,7 @@ class RateLimitError(Exception):
     pass
 
 def check_rate_limit(client_id: str, max_per_minute: int = 50) -> bool:
-    minute_bucket = datetime.utcnow().strftime('%Y-%m-%d-%H-%M')
+    minute_bucket = datetime.now(UTC).strftime('%Y-%m-%d-%H-%M')
     try:
         rate_limit_table.update_item(
             Key={'client_id': client_id, 'minute_bucket': minute_bucket},
