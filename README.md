@@ -13,7 +13,7 @@ A Python tool to discover high-signal Reddit threads where your target ICPs (Ide
 
 **Local Execution** (this guide): Full-featured implementation with advanced filtering, scoring, and profiling. Best for development and detailed analysis.
 
-**AWS Lambda** ([docs/AWS_DEPLOYMENT.md](docs/AWS_DEPLOYMENT.md)): Serverless deployment with parallel processing and distributed rate limiting. Simplified scoring optimized for cost (~$0.90/month).
+**AWS Lambda** ([docs/AWS_DEPLOYMENT.md](docs/AWS_DEPLOYMENT.md)): Serverless deployment with parallel processing, distributed rate limiting, and AI-powered summarization via Bedrock. Optimized for cost (~$1.05/month).
 
 ## Setup
 

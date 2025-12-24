@@ -200,9 +200,16 @@ sequenceDiagram
 
 **Responsibilities:**
 - Load post results from S3
-- Summarize each post body using Bedrock Claude Haiku
-- Build formatted email with summaries and URLs
+- Summarize each post body using Bedrock Claude Haiku (2-3 sentences focusing on pain points)
+- Build formatted email with summaries, engagement metrics, and URLs
 - Send one email per ICP to SNS topic
+
+**Email Format:**
+Each ICP receives a dedicated email containing:
+- Post title
+- AI-generated summary highlighting pain points
+- Engagement metrics (score, comments, upvote ratio)
+- Original Reddit URL for full context
 
 **Output:**
 ```json
@@ -211,6 +218,11 @@ sequenceDiagram
   "icp_count": 3
 }
 ```
+
+**IAM Permissions Required:**
+- `s3:GetObject` on results bucket
+- `bedrock:InvokeModel` for Claude Haiku (anthropic.claude-3-haiku-20240307-v1:0)
+- `sns:Publish` to notification topic
 
 ### 4. Aggregator Lambda
 
@@ -362,7 +374,17 @@ CONFIG_BUCKET=$(aws cloudformation describe-stacks \
 aws s3 cp config/reddit_icp.yaml s3://${CONFIG_BUCKET}/reddit_icp.yaml
 ```
 
-#### 5. Subscribe to SNS Notifications
+#### 5. Enable Bedrock Model Access
+
+```bash
+# Request access to Claude 3 Haiku in your AWS region
+# Go to: AWS Console > Bedrock > Model access
+# Enable: anthropic.claude-3-haiku-20240307-v1:0
+```
+
+**Note**: Model access must be enabled before the Summarizer Lambda can function.
+
+#### 6. Subscribe to SNS Notifications
 
 ```bash
 # Get SNS topic ARN
@@ -380,7 +402,7 @@ aws sns subscribe \
 # Confirm subscription via email
 ```
 
-#### 6. Test the Workflow
+#### 7. Test the Workflow
 
 ```bash
 # Get state machine ARN
@@ -399,7 +421,7 @@ aws stepfunctions start-execution \
   }'
 ```
 
-#### 7. Monitor Execution
+#### 8. Monitor Execution
 
 ```bash
 # View CloudWatch logs
@@ -503,12 +525,20 @@ Monthly cost for daily execution (3 ICPs):
 |---------|------|
 | Lambda (Orchestrator) | $0.00 |
 | Lambda (Scraper) | $0.45 |
+| Lambda (Summarizer) | $0.00 |
 | Lambda (Aggregator) | $0.00 |
+| Bedrock (Claude Haiku) | $0.15 |
 | Step Functions | $0.03 |
 | S3 | $0.01 |
 | DynamoDB | $0.01 |
 | Secrets Manager | $0.40 |
-| **Total** | **~$0.90** |
+| **Total** | **~$1.05** |
+
+**Bedrock Cost Details:**
+- Input tokens: ~$0.25 per 1M tokens
+- Output tokens: ~$1.25 per 1M tokens
+- Typical usage: 20 posts × 3 ICPs × 200 tokens = ~12K tokens/day
+- Monthly estimate: ~$0.15
 
 ### Cost Optimization Tips
 
