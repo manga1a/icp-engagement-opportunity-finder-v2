@@ -24,6 +24,9 @@ aws s3 cp config/reddit_icp.yaml s3://YOUR-CONFIG-BUCKET/
 aws stepfunctions start-execution \
   --state-machine-arn YOUR-STATE-MACHINE-ARN \
   --input '{"config_bucket":"...","config_key":"reddit_icp.yaml","output_bucket":"..."}'
+  
+# 6. Run CloudFormation linter with serverless-rules
+cfn-lint template.yaml -a cfn_lint_serverless.rules
 ```
 
 ## Architecture Overview
