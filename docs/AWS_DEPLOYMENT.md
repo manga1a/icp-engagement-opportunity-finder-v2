@@ -10,7 +10,7 @@ pip install aws-sam-cli
 
 # 2. Store Reddit credentials
 aws secretsmanager create-secret \
-  --name reddit-scraper/credentials \
+  --name reddit-api-key \
   --secret-string '{"client_id":"...","client_secret":"...","user_agent":"..."}'
 
 # 3. Build and deploy
@@ -254,7 +254,7 @@ Each ICP receives a dedicated email containing:
 - **Results Bucket**: Stores JSON outputs with lifecycle policy (archive to Glacier after 90 days)
 
 ### Secrets Manager
-- **Secret Name**: `reddit-scraper/credentials`
+- **Secret Name**: `reddit-api-key`
 ```json
 {
   "client_id": "...",
@@ -330,7 +330,7 @@ def check_rate_limit(client_id: str, max_per_minute: int = 50) -> bool:
 
 ```bash
 aws secretsmanager create-secret \
-  --name reddit-scraper/credentials \
+  --name reddit-api-key \
   --description "Reddit API credentials for ICP scraper" \
   --secret-string '{
     "client_id": "YOUR_CLIENT_ID",
@@ -461,7 +461,7 @@ sam deploy
 
 ```bash
 aws secretsmanager update-secret \
-  --secret-id reddit-scraper/credentials \
+  --secret-id reddit-api-key \
   --secret-string '{
     "client_id": "NEW_CLIENT_ID",
     "client_secret": "NEW_CLIENT_SECRET",
@@ -576,7 +576,7 @@ aws s3 rb s3://${RESULTS_BUCKET}
 
 # Delete secret
 aws secretsmanager delete-secret \
-  --secret-id reddit-scraper/credentials \
+  --secret-id reddit-api-key \
   --force-delete-without-recovery
 ```
 

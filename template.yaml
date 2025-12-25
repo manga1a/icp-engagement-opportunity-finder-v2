@@ -26,7 +26,7 @@ Globals:
         CONFIG_BUCKET: !Ref ConfigBucketName
         RESULTS_BUCKET: !Ref ResultsBucketName
         RATE_LIMIT_TABLE: !Ref RateLimitTable
-        SECRET_NAME: reddit-scraper/credentials
+        SECRET_NAME: reddit-api-key
 
 Resources:
   # S3 Buckets
@@ -85,7 +85,7 @@ Resources:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-              Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:reddit-scraper/credentials-*
+              Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:reddit-api-key-*
 
   ScraperFunction:
     Type: AWS::Serverless::Function
@@ -105,7 +105,7 @@ Resources:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-              Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:reddit-scraper/credentials-*
+              Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:reddit-api-key-*
 
   SummarizerFunction:
     Type: AWS::Serverless::Function
