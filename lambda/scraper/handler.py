@@ -75,7 +75,7 @@ def score_post(post: Submission, icp: Dict, scoring_config: Dict) -> float:
     keyword_score = min(1.0, keyword_score / 3.0)
     
     # Recency score
-    now = datetime.now(timezone.utc).timestamp()
+    now = datetime.now(UTC).timestamp()
     age_days = (now - post.created_utc) / 86400.0
     recency_score = math.exp(-age_days / 7.0)
     
@@ -115,7 +115,7 @@ def lambda_handler(event, context):
     
     subreddits = list(icp_config.get('subreddit_priors', {}).keys())
     days_back = api_config.get('days_back', 90)
-    cutoff_time = datetime.now(timezone.utc) - timedelta(days=days_back)
+    cutoff_time = datetime.now(UTC) - timedelta(days=days_back)
     cutoff_timestamp = cutoff_time.timestamp()
     
     # Build simple queries
@@ -165,12 +165,12 @@ def lambda_handler(event, context):
     
     # Write to S3
     slug = icp_name.lower().replace(' ', '_')
-    timestamp = datetime.now(timezone.utc).strftime('%Y%m%d')
+    timestamp = datetime.now(UTC).strftime('%Y%m%d')
     output_key = f"results/{slug}_{timestamp}.json"
     
     output_data = {
         'icp': icp_name,
-        'generated_at_utc': datetime.now(timezone.utc).isoformat(),
+        'generated_at_utc': datetime.now(UTC).isoformat(),
         'posts': top_posts
     }
     
