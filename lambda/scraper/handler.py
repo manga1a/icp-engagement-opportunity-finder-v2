@@ -19,10 +19,10 @@ def check_rate_limit(client_id: str, max_per_minute: int = 50) -> bool:
     try:
         rate_limit_table.update_item(
             Key={'client_id': client_id, 'minute_bucket': minute_bucket},
-            UpdateExpression='ADD request_count :inc SET ttl = :ttl',
+            UpdateExpression='ADD request_count :inc SET expiry_time = :expiry',
             ExpressionAttributeValues={
                 ':inc': 1,
-                ':ttl': int(time.time()) + 3600,
+                ':expiry': int(time.time()) + 3600,
                 ':max': max_per_minute
             },
             ConditionExpression='attribute_not_exists(request_count) OR request_count < :max',
