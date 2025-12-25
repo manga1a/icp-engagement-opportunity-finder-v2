@@ -3,12 +3,6 @@ Transform: AWS::Serverless-2016-10-31
 Description: Reddit ICP Scraper - Serverless Architecture
 
 Parameters:
-  ConfigBucketName:
-    Type: String
-    Default: reddit-scraper-config
-  ResultsBucketName:
-    Type: String
-    Default: reddit-scraper-results
   ScheduleExpression:
     Type: String
     Default: cron(0 7 ? * 2,5 *)
@@ -23,8 +17,8 @@ Globals:
       - arm64
     Environment:
       Variables:
-        CONFIG_BUCKET: !Ref ConfigBucketName
-        RESULTS_BUCKET: !Ref ResultsBucketName
+        CONFIG_BUCKET: !Ref ConfigBucket
+        RESULTS_BUCKET: !Ref ResultsBucket
         RATE_LIMIT_TABLE: !Ref RateLimitTable
         SECRET_NAME: reddit-api-key
 
@@ -33,14 +27,14 @@ Resources:
   ConfigBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref ConfigBucketName
+      BucketName: !Sub '${AWS::StackName}-config-${AWS::AccountId}'
       VersioningConfiguration:
         Status: Enabled
 
   ResultsBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref ResultsBucketName
+      BucketName: !Sub '${AWS::StackName}-results-${AWS::AccountId}'
       LifecycleConfiguration:
         Rules:
           - Id: ArchiveOldResults
@@ -80,7 +74,7 @@ Resources:
       MemorySize: 256
       Policies:
         - S3ReadPolicy:
-            BucketName: !Ref ConfigBucketName
+            BucketName: !Ref ConfigBucket
         - Statement:
             - Effect: Allow
               Action:
@@ -98,7 +92,7 @@ Resources:
       ReservedConcurrentExecutions: 2
       Policies:
         - S3WritePolicy:
-            BucketName: !Ref ResultsBucketName
+            BucketName: !Ref ResultsBucket
         - DynamoDBCrudPolicy:
             TableName: !Ref RateLimitTable
         - Statement:
@@ -120,7 +114,7 @@ Resources:
           SNS_TOPIC_ARN: !Ref NotificationTopic
       Policies:
         - S3ReadPolicy:
-            BucketName: !Ref ResultsBucketName
+            BucketName: !Ref ResultsBucket
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt NotificationTopic.TopicName
         - Statement:
@@ -169,12 +163,6 @@ Resources:
           Type: Schedule
           Properties:
             Schedule: !Ref ScheduleExpression
-            Input: !Sub |
-              {
-                "config_bucket": "${ConfigBucketName}",
-                "config_key": "reddit_icp.yaml",
-                "output_bucket": "${ResultsBucketName}"
-              }
 
   # SNS Topic for Notifications
   NotificationTopic:

@@ -7,9 +7,9 @@ s3 = boto3.client('s3')
 secrets = boto3.client('secretsmanager')
 
 def lambda_handler(event, context):
-    config_bucket = event['config_bucket']
-    config_key = event['config_key']
-    output_bucket = event['output_bucket']
+    config_bucket = os.environ['CONFIG_BUCKET']
+    config_key = event.get('config_key', 'reddit_icp.yaml')
+    output_bucket = os.environ['RESULTS_BUCKET']
     
     # Fetch config from S3
     response = s3.get_object(Bucket=config_bucket, Key=config_key)

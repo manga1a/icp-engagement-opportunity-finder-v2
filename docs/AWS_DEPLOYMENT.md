@@ -18,12 +18,12 @@ sam build
 sam deploy --guided
 
 # 4. Upload config
-aws s3 cp config/reddit_icp.yaml s3://YOUR-CONFIG-BUCKET/
+aws s3 cp config/reddit_icp.yaml s3://YOUR-STACK-NAME-config-YOUR-ACCOUNT-ID/
 
 # 5. Test execution
 aws stepfunctions start-execution \
   --state-machine-arn YOUR-STATE-MACHINE-ARN \
-  --input '{"config_bucket":"...","config_key":"reddit_icp.yaml","output_bucket":"..."}'
+  --input '{}'
   
 # 6. Run CloudFormation linter with serverless-rules
 cfn-lint template.yaml -a cfn_lint_serverless.rules
@@ -143,12 +143,10 @@ sequenceDiagram
 
 **Input:**
 ```json
-{
-  "config_bucket": "my-reddit-scraper-config",
-  "config_key": "reddit_icp.yaml",
-  "output_bucket": "my-reddit-scraper-results"
-}
+{}
 ```
+
+Note: Bucket names are automatically derived from the stack name.
 
 **Output:**
 ```json
@@ -159,7 +157,7 @@ sequenceDiagram
       "icp_config": {...},
       "defaults": {...},
       "credentials": {...},
-      "output_bucket": "my-reddit-scraper-results"
+      "output_bucket": "<stack-name>-results"
     }
   ]
 }
@@ -352,13 +350,15 @@ sam build
 sam deploy --guided
 
 # Follow prompts:
-# - Stack Name: reddit-scraper
+# - Stack Name: reddit-scraper (choose a unique name)
 # - AWS Region: us-east-1 (or your preferred region)
-# - Parameter ConfigBucketName: reddit-scraper-config-YOURNAME
-# - Parameter ResultsBucketName: reddit-scraper-results-YOURNAME
 # - Confirm changes before deploy: Y
 # - Allow SAM CLI IAM role creation: Y
 # - Save arguments to configuration file: Y
+
+# Buckets will be automatically created as:
+# - Config: <stack-name>-config-<account-id>
+# - Results: <stack-name>-results-<account-id>
 
 # Subsequent deployments
 sam deploy
@@ -414,14 +414,9 @@ STATE_MACHINE=$(aws cloudformation describe-stacks \
   --query 'Stacks[0].Outputs[?OutputKey==`StateMachineArn`].OutputValue' \
   --output text)
 
-# Start execution manually
+# Start execution (no input needed - buckets are from environment)
 aws stepfunctions start-execution \
-  --state-machine-arn ${STATE_MACHINE} \
-  --input '{
-    "config_bucket": "reddit-scraper-config-YOURNAME",
-    "config_key": "reddit_icp.yaml",
-    "output_bucket": "reddit-scraper-results-YOURNAME"
-  }'
+  --state-machine-arn ${STATE_MACHINE}
 ```
 
 #### 8. Monitor Execution
@@ -569,6 +564,7 @@ To remove all resources:
 sam delete --stack-name reddit-scraper
 
 # Delete S3 buckets (must be empty)
+# Bucket names are based on your stack name
 aws s3 rm s3://${CONFIG_BUCKET} --recursive
 aws s3 rb s3://${CONFIG_BUCKET}
 aws s3 rm s3://${RESULTS_BUCKET} --recursive
