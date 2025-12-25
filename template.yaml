@@ -89,7 +89,7 @@ Resources:
       Handler: handler.lambda_handler
       Timeout: 900
       MemorySize: 512
-      ReservedConcurrentExecutions: 2
+#      ReservedConcurrentExecutions: 2
       Policies:
         - S3WritePolicy:
             BucketName: !Ref ResultsBucket
