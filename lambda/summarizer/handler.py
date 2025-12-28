@@ -6,7 +6,8 @@ s3 = boto3.client('s3')
 bedrock = boto3.client('bedrock-runtime')
 sns = boto3.client('sns')
 
-def summarize_post(title: str, body: str) -> str:
+def summarize_post(title: str, body: str, model_id: str) -> str:
+    
     prompt = f"""Summarize this Reddit post in 2-3 sentences focusing on the pain point or need expressed:
 
 Title: {title}
@@ -21,7 +22,7 @@ Summary:"""
     }
     
     response = bedrock.invoke_model(
-        modelId='anthropic.claude-3-haiku-20240307-v1:0',
+        modelId=model_id,
         body=json.dumps(request_body)
     )
     
@@ -32,6 +33,7 @@ def lambda_handler(event, context):
     results = event
     sns_topic_arn = os.environ['SNS_TOPIC_ARN']
     results_bucket = os.environ['RESULTS_BUCKET']
+    model_id = os.environ['BEDROCK_MODEL_ID']
     
     for result in results:
         if 'posts_found' not in result or result['posts_found'] == 0:
@@ -48,7 +50,7 @@ def lambda_handler(event, context):
         
         for i, post in enumerate(data['posts'], 1):
             body = post.get('selftext', '')
-            summary = summarize_post(post['title'], body)
+            summary = summarize_post(post['title'], body, model_id)
             
             email_lines.extend([
                 f"\n{i}. {post['title']}",
