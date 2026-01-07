@@ -34,6 +34,8 @@ def lambda_handler(event, context):
     sns_topic_arn = os.environ['SNS_TOPIC_ARN']
     results_bucket = os.environ['RESULTS_BUCKET']
     model_id = os.environ['BEDROCK_MODEL_ID']
+
+    print(f"Bedrock model id: {model_id}")
     
     for result in results:
         if 'posts_found' not in result or result['posts_found'] == 0:

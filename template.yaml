@@ -7,10 +7,12 @@ Parameters:
     Type: String
     Default: cron(0 7 ? * 2,5 *)
     Description: Every Monday and Thursday at 7 AM UTC
-  BedrockModelId:
-    Type: String
-    Default: us.anthropic.claude-3-5-haiku-20241022-v1:0
-    Description: Bedrock model ID for summarization
+
+Mappings:
+  Constants:
+    Bedrock:
+      ModelId: anthropic.claude-3-5-haiku-20241022-v1:0
+      InferenceProfileId: us.anthropic.claude-3-5-haiku-20241022-v1:0
 
 Globals:
   Function:
@@ -116,7 +118,7 @@ Resources:
       Environment:
         Variables:
           SNS_TOPIC_ARN: !Ref NotificationTopic
-          BEDROCK_MODEL_ID: !Ref BedrockModelId
+          BEDROCK_MODEL_ID: !FindInMap [Constants, Bedrock, InferenceProfileId]
       Policies:
         - S3ReadPolicy:
             BucketName: !Ref ResultsBucket
@@ -126,9 +128,13 @@ Resources:
             - Effect: Allow
               Action:
                 - bedrock:InvokeModel
-                - aws-marketplace:ViewSubscriptions
-                - aws-marketplace:Subscribe
-              Resource: !Sub arn:aws:bedrock:*::inference-profile/${BedrockModelId}
+              Resource:
+                - !Sub 
+                  - arn:aws:bedrock:*:${AWS::AccountId}:inference-profile/${InferenceProfileId}
+                  - InferenceProfileId: !FindInMap [Constants, Bedrock, InferenceProfileId]
+                - !Sub
+                  - arn:aws:bedrock:*::foundation-model/${ModelId}
+                  - ModelId: !FindInMap [Constants, Bedrock, ModelId]
 
   AggregatorFunction:
     Type: AWS::Serverless::Function
