@@ -2,7 +2,7 @@
 import re
 import math
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from typing import Dict, Any, List, Tuple
 from praw.models import Submission
 
@@ -98,7 +98,7 @@ def compute_recency_score(created_utc: float, half_life_days: float) -> float:
     Returns:
         Score in [0, 1]
     """
-    now = datetime.now(timezone.utc).timestamp()
+    now = datetime.now(UTC).timestamp()
     age_days = (now - created_utc) / 86400.0  # seconds to days
     
     if age_days < 0:
@@ -140,7 +140,7 @@ def compute_engagement_score(
     grace_hours = params.get('new_post_comment_grace_hours', 24)
     
     # Grace period for very new posts
-    now = datetime.now(timezone.utc).timestamp()
+    now = datetime.now(UTC).timestamp()
     age_hours = (now - created_utc) / 3600.0
     
     # Reduce comment weight for very new posts

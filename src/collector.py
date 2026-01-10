@@ -1,6 +1,6 @@
 """Post collection and deduplication logic."""
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, UTC
 from typing import Dict, Any, List, Set
 from praw.models import Submission
 
@@ -50,7 +50,7 @@ def collect_for_icp(
     
     # Recency cutoff
     days_back = api_config.get('days_back', 90)
-    cutoff_time = datetime.now(timezone.utc) - timedelta(days=days_back)
+    cutoff_time = datetime.now(UTC) - timedelta(days=days_back)
     cutoff_timestamp = cutoff_time.timestamp()
     
     # Collect from search queries

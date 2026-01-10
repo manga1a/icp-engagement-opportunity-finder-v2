@@ -9,6 +9,12 @@ A Python tool to discover high-signal Reddit threads where your target ICPs (Ide
 - **Recency-focused**: Prioritizes latest posts with exponential decay
 - **JSON output**: Structured data ready for analysis
 
+## Deployment Options
+
+**Local Execution** (this guide): Full-featured implementation with advanced filtering, scoring, and profiling. Best for development and detailed analysis.
+
+**AWS Lambda** ([docs/AWS_DEPLOYMENT.md](docs/AWS_DEPLOYMENT.md)): Serverless deployment with parallel processing, distributed rate limiting, and AI-powered summarization via Bedrock. Optimized for cost (~$1.05/month).
+
 ## Setup
 
 1. **Install dependencies**:

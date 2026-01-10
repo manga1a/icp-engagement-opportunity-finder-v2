@@ -7,3 +7,7 @@ langdetect>=1.0.9
 # Uncomment to enable line-by-line and memory profiling
 # line-profiler>=4.0.0
 # memory-profiler>=0.61.0
+
+# Development and testing tools
+cfn-lint
+cfn-lint-serverless

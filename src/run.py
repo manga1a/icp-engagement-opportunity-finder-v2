@@ -5,7 +5,7 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -45,14 +45,14 @@ def write_json_output(
     
     # Generate filename
     slug = slugify(icp_name)
-    timestamp = datetime.now(timezone.utc).strftime('%Y%m%d')
+    timestamp = datetime.now(UTC).strftime('%Y%m%d')
     filename = f"{slug}_{timestamp}.json"
     filepath = outdir / filename
     
     # Build output structure
     output = {
         'icp': icp_name,
-        'generated_at_utc': datetime.now(timezone.utc).isoformat(),
+        'generated_at_utc': datetime.now(UTC).isoformat(),
         'config_version': config.version,
         'config_hash': config.get_hash(),
         'query_meta': query_meta,

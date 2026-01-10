@@ -1,0 +1,237 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Reddit ICP Scraper - Serverless Architecture
+
+Parameters:
+  ScheduleExpression:
+    Type: String
+    Default: cron(0 7 ? * 2,5 *)
+    Description: Every Monday and Thursday at 7 AM UTC
+
+Mappings:
+  Constants:
+    Bedrock:
+      ModelId: anthropic.claude-3-5-haiku-20241022-v1:0
+      InferenceProfileId: us.anthropic.claude-3-5-haiku-20241022-v1:0
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 900
+    MemorySize: 512
+    Architectures:
+      - arm64
+    Environment:
+      Variables:
+        CONFIG_BUCKET: !Ref ConfigBucket
+        RESULTS_BUCKET: !Ref ResultsBucket
+        RATE_LIMIT_TABLE: !Ref RateLimitTable
+        SECRET_NAME: reddit-api-key
+
+Resources:
+  # S3 Buckets
+  ConfigBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${AWS::StackName}-config-${AWS::AccountId}'
+      VersioningConfiguration:
+        Status: Enabled
+
+  ResultsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${AWS::StackName}-results-${AWS::AccountId}'
+      LifecycleConfiguration:
+        Rules:
+          - Id: ArchiveOldResults
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 90
+                StorageClass: GLACIER
+
+  # DynamoDB Table for Rate Limiting
+  RateLimitTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: reddit-scraper-rate-limits
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: client_id
+          AttributeType: S
+        - AttributeName: minute_bucket
+          AttributeType: S
+      KeySchema:
+        - AttributeName: client_id
+          KeyType: HASH
+        - AttributeName: minute_bucket
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  # Lambda Functions
+  OrchestratorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: reddit-orchestrator
+      CodeUri: lambda/orchestrator/
+      Handler: handler.lambda_handler
+      Timeout: 30
+      MemorySize: 256
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref ConfigBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:reddit-api-key-*
+
+  ScraperFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: reddit-scraper
+      CodeUri: lambda/scraper/
+      Handler: handler.lambda_handler
+      Timeout: 900
+      MemorySize: 512
+#      ReservedConcurrentExecutions: 2
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref ResultsBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref RateLimitTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:reddit-api-key-*
+
+  SummarizerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: reddit-summarizer
+      CodeUri: lambda/summarizer/
+      Handler: handler.lambda_handler
+      Timeout: 300
+      MemorySize: 512
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN: !Ref NotificationTopic
+          BEDROCK_MODEL_ID: !FindInMap [Constants, Bedrock, InferenceProfileId]
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref ResultsBucket
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt NotificationTopic.TopicName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource:
+                - !Sub 
+                  - arn:aws:bedrock:*:${AWS::AccountId}:inference-profile/${InferenceProfileId}
+                  - InferenceProfileId: !FindInMap [Constants, Bedrock, InferenceProfileId]
+                - !Sub
+                  - arn:aws:bedrock:*::foundation-model/${ModelId}
+                  - ModelId: !FindInMap [Constants, Bedrock, ModelId]
+
+  AggregatorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: reddit-aggregator
+      CodeUri: lambda/aggregator/
+      Handler: handler.lambda_handler
+      Timeout: 60
+      MemorySize: 256
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN: !Ref NotificationTopic
+      Policies:
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt NotificationTopic.TopicName
+        - CloudWatchPutMetricPolicy: {}
+
+  # Step Functions State Machine
+  ScraperStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: reddit-scraper-workflow
+      DefinitionUri: statemachine/scraper.asl.json
+      DefinitionSubstitutions:
+        OrchestratorFunctionArn: !GetAtt OrchestratorFunction.Arn
+        ScraperFunctionArn: !GetAtt ScraperFunction.Arn
+        SummarizerFunctionArn: !GetAtt SummarizerFunction.Arn
+        AggregatorFunctionArn: !GetAtt AggregatorFunction.Arn
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref OrchestratorFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ScraperFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref SummarizerFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref AggregatorFunction
+      Events:
+        DailySchedule:
+          Type: Schedule
+          Properties:
+            Schedule: !Ref ScheduleExpression
+
+  # SNS Topic for Notifications
+  NotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: reddit-scraper-notifications
+      DisplayName: Reddit Scraper Notifications
+
+  # CloudWatch Alarms
+  ScraperErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: reddit-scraper-errors
+      AlarmDescription: Alert on scraper Lambda errors
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ScraperFunction
+      AlarmActions:
+        - !Ref NotificationTopic
+
+  StateMachineFailureAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: reddit-scraper-workflow-failures
+      AlarmDescription: Alert on Step Functions failures
+      MetricName: ExecutionsFailed
+      Namespace: AWS/States
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: StateMachineArn
+          Value: !Ref ScraperStateMachine
+      AlarmActions:
+        - !Ref NotificationTopic
+
+Outputs:
+  ConfigBucket:
+    Description: S3 bucket for configuration files
+    Value: !Ref ConfigBucket
+  ResultsBucket:
+    Description: S3 bucket for results
+    Value: !Ref ResultsBucket
+  StateMachineArn:
+    Description: Step Functions State Machine ARN
+    Value: !Ref ScraperStateMachine
+  NotificationTopicArn:
+    Description: SNS Topic for notifications
+    Value: !Ref NotificationTopic

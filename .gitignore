@@ -25,3 +25,7 @@ Thumbs.db
 *.log
 # Profile data
 profile_stats/
+
+# AWS SAM
+.aws-sam/
+samconfig.toml
