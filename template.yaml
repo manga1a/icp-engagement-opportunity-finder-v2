@@ -150,6 +150,7 @@ Resources:
       Policies:
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt NotificationTopic.TopicName
+        - CloudWatchPutMetricPolicy: {}
 
   # Step Functions State Machine
   ScraperStateMachine:
